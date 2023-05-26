@@ -1,0 +1,50 @@
+name: Build and Deploy
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+      - name: Install Dependencies
+        run: yarn install
+      - name: Build
+        run: yarn run build
+        env:
+          REACT_APP_API: ${{ secrets.REACT_APP_API }}
+          REACT_APP_URL: ${{ secrets.REACT_APP_URL }}
+          REACT_APP_DOWNLOAD_URL: ${{ secrets.REACT_APP_DOWNLOAD_URL }}
+          REACT_APP_UPLOAD_URL: ${{ secrets.REACT_APP_UPLOAD_URL }}
+          REACT_APP_FIREBASE_API_KEY: ${{ secrets.PROD_REACT_APP_FIREBASE_API_KEY }}
+          REACT_APP_SENTRY_DSN: ${{ secrets.PROD_REACT_APP_SENTRY_DSN }}
+          REACT_APP_XGRID_KEY: ${{ secrets.REACT_APP_XGRID_KEY }}
+          REACT_APP_LOGROCKET_ID: ${{ secrets.REACT_APP_LOGROCKET_ID }}
+          REACT_APP_PUSHER_KEY: ${{ secrets.REACT_APP_PUSHER_KEY }}
+      - name: Archive Production Artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: build
+          path: build
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+      - name: Download Artifact
+        uses: actions/download-artifact@master
+        with:
+          name: build
+          path: build
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
